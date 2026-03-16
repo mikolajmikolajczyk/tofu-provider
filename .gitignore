@@ -1,0 +1,12 @@
+# Build output
+tofu-provider
+tofu-provider.exe
+
+# Generated registry (local test output)
+registry/
+
+# Nix / direnv
+.direnv/
+.devenv/
+result
+result-*

@@ -1,0 +1,52 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.goos }}/${{ matrix.goarch }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+          - goos: windows
+            goarch: amd64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          VERSION: ${{ github.ref_name }}
+        run: |
+          EXT=""
+          [ "$GOOS" = "windows" ] && EXT=".exe"
+          BINARY="tofu-provider_${GOOS}_${GOARCH}${EXT}"
+          go build -ldflags="-s -w -X main.version=${VERSION}" -o "$BINARY" .
+          sha256sum "$BINARY" > "${BINARY}.sha256"
+          echo "BINARY=$BINARY" >> $GITHUB_ENV
+
+      - name: Upload to release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ github.ref_name }}" "$BINARY" "${BINARY}.sha256"
