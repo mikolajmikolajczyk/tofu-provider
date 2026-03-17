@@ -87,8 +87,8 @@ func addToRegistry(registryDir, name, version, filePath, namespace, targetOS, ta
 	}
 
 	providerDir := filepath.Join(registryDir, "v1", "providers", namespace, name)
-	platformKey := fmt.Sprintf("%s_%s", targetOS, targetArch)
-	dlDir := filepath.Join(providerDir, version, "download", platformKey)
+	platformKey := fmt.Sprintf("%s_%s", targetOS, targetArch) // used as identifier in .registry.json
+	dlDir := filepath.Join(providerDir, version, "download", targetOS, targetArch)
 	if err := os.MkdirAll(dlDir, 0755); err != nil {
 		return err
 	}
@@ -114,7 +114,7 @@ func addToRegistry(registryDir, name, version, filePath, namespace, targetOS, ta
 
 	downloadURL := zipName
 	shasumURL := zipName + ".sha256"
-	if absURL := downloadFileURL(cfg.Hostname, cfg.BasePath, namespace, name, version, platformKey, zipName); absURL != "" {
+	if absURL := downloadFileURL(cfg.Hostname, cfg.BasePath, namespace, name, version, targetOS, targetArch, zipName); absURL != "" {
 		downloadURL = absURL
 		shasumURL = absURL + ".sha256"
 	}

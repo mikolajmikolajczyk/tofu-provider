@@ -33,16 +33,16 @@ func providersV1Path(basePath string) string {
 // e.g. hostname="registry.example.com", basePath="/tf-providers",
 //
 //	namespace="myco", name="myprovider", version="1.0.0",
-//	platformKey="linux_amd64", filename="terraform-provider-myprovider_1.0.0_linux_amd64.zip"
+//	targetOS="linux", targetArch="amd64", filename="terraform-provider-myprovider_1.0.0_linux_amd64.zip"
 //
-// → "https://registry.example.com/tf-providers/v1/providers/myco/myprovider/1.0.0/download/linux_amd64/terraform-provider-myprovider_1.0.0_linux_amd64.zip"
-func downloadFileURL(hostname, basePath, namespace, name, version, platformKey, filename string) string {
+// → "https://registry.example.com/tf-providers/v1/providers/myco/myprovider/1.0.0/download/linux/amd64/terraform-provider-myprovider_1.0.0_linux_amd64.zip"
+func downloadFileURL(hostname, basePath, namespace, name, version, targetOS, targetArch, filename string) string {
 	if hostname == "" {
 		return ""
 	}
 	base := strings.TrimRight(providersV1Path(basePath), "/")
-	return fmt.Sprintf("https://%s%s/%s/%s/%s/download/%s/%s",
-		hostname, base, namespace, name, version, platformKey, filename)
+	return fmt.Sprintf("https://%s%s/%s/%s/%s/download/%s/%s/%s",
+		hostname, base, namespace, name, version, targetOS, targetArch, filename)
 }
 
 type ProviderEntry struct {

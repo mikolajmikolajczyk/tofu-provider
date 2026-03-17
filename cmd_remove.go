@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 func cmdRemove(args []string) error {
@@ -47,7 +48,14 @@ func removeFromRegistry(registryDir, namespace, name, version string) error {
 	}
 
 	for _, plat := range vEntry.Platforms {
-		dlDir := filepath.Join(registryDir, "v1", "providers", namespace, name, version, "download", plat)
+		// plat is stored as "linux_amd64"; directory layout is "linux/amd64"
+		parts := strings.SplitN(plat, "_", 2)
+		var dlDir string
+		if len(parts) == 2 {
+			dlDir = filepath.Join(registryDir, "v1", "providers", namespace, name, version, "download", parts[0], parts[1])
+		} else {
+			dlDir = filepath.Join(registryDir, "v1", "providers", namespace, name, version, "download", plat)
+		}
 		os.RemoveAll(dlDir) //nolint:errcheck
 	}
 
