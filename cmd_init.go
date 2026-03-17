@@ -36,6 +36,22 @@ func initRegistry(registryDir, hostname, basePath string) error {
 	}
 	cfg.Hostname = hostname
 	cfg.BasePath = basePath
+
+	// Generate a GPG key pair if one doesn't exist yet.
+	if cfg.GPGKeyID == "" {
+		logInfo("Generating GPG key pair…")
+		keyID, pubKey, privKey, err := generateGPGKey()
+		if err != nil {
+			return fmt.Errorf("generate GPG key: %w", err)
+		}
+		cfg.GPGKeyID = keyID
+		cfg.GPGPublicKey = pubKey
+		cfg.GPGPrivateKey = privKey
+		logOK(fmt.Sprintf("GPG key generated:      %s", keyID))
+	} else {
+		logInfo(fmt.Sprintf("GPG key (existing):     %s", cfg.GPGKeyID))
+	}
+
 	if err := saveConfig(registryDir, cfg); err != nil {
 		return err
 	}
@@ -69,7 +85,7 @@ func initRegistry(registryDir, hostname, basePath string) error {
         try_files $uri =404;
     }
 
-    location ~\.zip$ {
+    location ~\.(zip|sig)$ {
         add_header Content-Type application/octet-stream;
     }
 }

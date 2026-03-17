@@ -13,9 +13,12 @@ const registryConfigFile = ".registry.json"
 // ── stored config (.registry.json) ──────────────────────────────────────────
 
 type RegistryConfig struct {
-	Hostname  string                    `json:"hostname,omitempty"`
-	BasePath  string                    `json:"base_path,omitempty"`
-	Providers map[string]*ProviderEntry `json:"providers"`
+	Hostname     string                    `json:"hostname,omitempty"`
+	BasePath     string                    `json:"base_path,omitempty"`
+	GPGKeyID     string                    `json:"gpg_key_id,omitempty"`
+	GPGPublicKey string                    `json:"gpg_public_key,omitempty"`
+	GPGPrivateKey string                   `json:"gpg_private_key,omitempty"`
+	Providers    map[string]*ProviderEntry `json:"providers"`
 }
 
 // providersV1Path returns the providers.v1 URL path for the well-known file,
@@ -79,8 +82,9 @@ type DownloadDoc struct {
 	Filename    string      `json:"filename"`
 	DownloadURL string      `json:"download_url"`
 	Shasum      string      `json:"shasum"`
-	ShasumURL   string      `json:"shasum_url"`
-	SigningKeys  SigningKeys `json:"signing_keys"`
+	ShasumURL          string      `json:"shasums_url"`
+	ShasumSignatureURL string      `json:"shasums_signature_url,omitempty"`
+	SigningKeys         *SigningKeys `json:"signing_keys,omitempty"`
 }
 
 type SigningKeys struct {
@@ -90,6 +94,13 @@ type SigningKeys struct {
 type GPGKey struct {
 	KeyID      string `json:"key_id"`
 	ASCIIArmor string `json:"ascii_armor"`
+}
+
+func signingKeys(keyID, asciiArmor string) *SigningKeys {
+	if keyID == "" {
+		return nil
+	}
+	return &SigningKeys{GPGPublicKeys: []GPGKey{{KeyID: keyID, ASCIIArmor: asciiArmor}}}
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────────

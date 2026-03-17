@@ -51,7 +51,7 @@ USAGE
 
       Options:
         --hostname <host>     Hostname the registry is served from (e.g. registry.example.com)
-                              When set, download_url and shasum_url in download index.json are absolute HTTPS URLs.
+                              When set, download_url and shasums_url in download index.json are absolute HTTPS URLs.
                               Saved in .registry.json and reused by subsequent commands.
         --base-path <path>    URL prefix the registry is served under (default: "")
                               e.g. --base-path /tf-providers generates {"providers.v1": "/tf-providers/v1/providers/"}
@@ -67,7 +67,6 @@ USAGE
         --arch <arch>         Target arch         (default: autodetect from filename or "amd64")
         --registry-dir <dir>  Registry root dir   (default: "./registry", or user@host:/path)
         --protocols <p,q>     Supported protocols (default: "6.0,5.1")
-        --gpg-key-id <id>     GPG key ID label    (optional, decorative only)
         --ssh-key <path>      SSH private key for remote registry
         --ssh-port <port>     SSH port            (default: 22)
 

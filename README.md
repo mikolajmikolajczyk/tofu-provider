@@ -25,11 +25,13 @@ registry/
                 ├── versions/
                 │   └── index.json
                 └── <version>/
+                    ├── terraform-provider-<name>_<version>_SHA256SUMS
+                    ├── terraform-provider-<name>_<version>_SHA256SUMS.sig
                     └── download/
-                        └── <os>_<arch>/
-                            ├── index.json
-                            ├── terraform-provider-<name>_<version>_<os>_<arch>.zip
-                            └── terraform-provider-<name>_<version>_<os>_<arch>.zip.sha256
+                        └── <os>/
+                            └── <arch>/
+                                ├── index.json
+                                └── terraform-provider-<name>_<version>_<os>_<arch>.zip
 ```
 
 ## Usage
@@ -59,7 +61,9 @@ Available options for `init`:
 
 `--hostname` and `--base-path` are saved in `.registry.json` and automatically applied by subsequent `add` commands — you don't need to repeat them.
 
-When `--hostname` is set, `download_url` and `shasum_url` in each download `index.json` are generated as absolute HTTPS URLs, which OpenTofu requires. Without it they fall back to bare filenames.
+When `--hostname` is set, `download_url`, `shasums_url`, and `shasums_signature_url` in each download `index.json` are generated as absolute HTTPS URLs, which OpenTofu requires. Without it they fall back to relative paths.
+
+`init` also generates an RSA-4096 GPG key pair and stores it in `.registry.json`. The private key is used by `add` to sign the `SHA256SUMS` file — satisfying the registry protocol's requirement for a detached GPG signature. If you skip `init`, the key is generated automatically on the first `add`.
 
 ### Add a provider binary
 
@@ -92,7 +96,6 @@ Available options for `add`:
 | `--arch` | auto-detected | Target architecture (single file only) |
 | `--registry-dir` | `./registry` | Local path or `user@host:/path` |
 | `--protocols` | `6.0,5.1` | Supported Terraform protocol versions |
-| `--gpg-key-id` | — | GPG key ID label (decorative, no actual signing) |
 | `--ssh-key` | — | SSH private key for remote registry |
 | `--ssh-port` | `22` | SSH port for remote registry |
 
@@ -162,7 +165,7 @@ server {
         add_header Content-Type application/json;
     }
 
-    location ~\.zip$ {
+    location ~\.(zip|sig)$ {
         add_header Content-Type application/octet-stream;
     }
 }

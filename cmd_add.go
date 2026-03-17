@@ -17,7 +17,6 @@ func cmdAdd(args []string) error {
 	targetOS := fs.String("os", "", "Target OS")
 	targetArch := fs.String("arch", "", "Target arch")
 	protocols := fs.String("protocols", "6.0,5.1", "Supported protocols (comma-separated)")
-	gpgKeyID := fs.String("gpg-key-id", "", "GPG key ID label (decorative only)")
 	sshKey := fs.String("ssh-key", "", "SSH private key for remote registry")
 	sshPort := fs.Int("ssh-port", 22, "SSH port for remote registry")
 	if err := parseFlags(fs, args); err != nil {
@@ -55,7 +54,7 @@ func cmdAdd(args []string) error {
 			if *targetArch != "" {
 				goarch = *targetArch
 			}
-			if err := addToRegistry(dir, name, version, fp, *namespace, goos, goarch, *gpgKeyID, protocolList); err != nil {
+			if err := addToRegistry(dir, name, version, fp, *namespace, goos, goarch, protocolList); err != nil {
 				return err
 			}
 		}
@@ -63,7 +62,7 @@ func cmdAdd(args []string) error {
 	})
 }
 
-func addToRegistry(registryDir, name, version, filePath, namespace, targetOS, targetArch, gpgKeyID string, protocolList []string) error {
+func addToRegistry(registryDir, name, version, filePath, namespace, targetOS, targetArch string, protocolList []string) error {
 	if err := os.MkdirAll(registryDir, 0755); err != nil {
 		return err
 	}
@@ -107,30 +106,65 @@ func addToRegistry(registryDir, name, version, filePath, namespace, targetOS, ta
 	}
 	logInfo(fmt.Sprintf("SHA256: %s", shasum))
 
-	keyID := "unsigned"
-	if gpgKeyID != "" {
-		keyID = gpgKeyID
+	// Ensure a GPG key exists in config (auto-generate if init wasn't run).
+	if cfg.GPGKeyID == "" {
+		logInfo("No GPG key found — generating one…")
+		keyID, pubKey, privKey, err := generateGPGKey()
+		if err != nil {
+			return fmt.Errorf("generate GPG key: %w", err)
+		}
+		cfg.GPGKeyID = keyID
+		cfg.GPGPublicKey = pubKey
+		cfg.GPGPrivateKey = privKey
+		if err := saveConfig(registryDir, cfg); err != nil {
+			return err
+		}
+		logOK(fmt.Sprintf("GPG key generated: %s", keyID))
 	}
 
+	// Write / update SHA256SUMS at the version level (one file for all platforms).
+	shasumFile := fmt.Sprintf("terraform-provider-%s_%s_SHA256SUMS", name, version)
+	shasumPath := filepath.Join(providerDir, version, shasumFile)
+	sigPath := shasumPath + ".sig"
+
+	existing, _ := os.ReadFile(shasumPath)
+	newEntry := []byte(fmt.Sprintf("%s  %s\n", shasum, zipName))
+	if !strings.Contains(string(existing), zipName) {
+		existing = append(existing, newEntry...)
+	}
+	if err := os.WriteFile(shasumPath, existing, 0644); err != nil {
+		return err
+	}
+	sig, err := signDetached(cfg.GPGPrivateKey, existing)
+	if err != nil {
+		return fmt.Errorf("sign SHA256SUMS: %w", err)
+	}
+	if err := os.WriteFile(sigPath, sig, 0644); err != nil {
+		return err
+	}
+
+	// Build download and shasums URLs.
 	downloadURL := zipName
-	shasumURL := zipName + ".sha256"
-	if absURL := downloadFileURL(cfg.Hostname, cfg.BasePath, namespace, name, version, targetOS, targetArch, zipName); absURL != "" {
-		downloadURL = absURL
-		shasumURL = absURL + ".sha256"
+	shasumURL := "../../../" + shasumFile
+	sigURL := shasumURL + ".sig"
+	if cfg.Hostname != "" {
+		base := strings.TrimRight(providersV1Path(cfg.BasePath), "/")
+		versionBase := fmt.Sprintf("https://%s%s/%s/%s/%s", cfg.Hostname, base, namespace, name, version)
+		downloadURL = downloadFileURL(cfg.Hostname, cfg.BasePath, namespace, name, version, targetOS, targetArch, zipName)
+		shasumURL = versionBase + "/" + shasumFile
+		sigURL = shasumURL + ".sig"
 	}
 
 	downloadDoc := DownloadDoc{
-		Protocols:   protocolList,
-		OS:          targetOS,
-		Arch:        targetArch,
-		Filename:    zipName,
-		DownloadURL: downloadURL,
-		Shasum:      shasum,
-		ShasumURL:   shasumURL,
-		SigningKeys:  SigningKeys{GPGPublicKeys: []GPGKey{{KeyID: keyID, ASCIIArmor: ""}}},
-	}
-	if err := os.WriteFile(zipPath+".sha256", []byte(fmt.Sprintf("%s  %s\n", shasum, zipName)), 0644); err != nil {
-		return err
+		Protocols:          protocolList,
+		OS:                 targetOS,
+		Arch:               targetArch,
+		Filename:           zipName,
+		DownloadURL:        downloadURL,
+		Shasum:             shasum,
+		ShasumURL:          shasumURL,
+		ShasumSignatureURL: sigURL,
+		SigningKeys:        signingKeys(cfg.GPGKeyID, cfg.GPGPublicKey),
 	}
 	if err := writeJSON(filepath.Join(dlDir, "index.json"), downloadDoc); err != nil {
 		return err
