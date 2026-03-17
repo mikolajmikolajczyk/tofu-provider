@@ -40,9 +40,24 @@ registry/
 tofu-provider init
 tofu-provider init --registry-dir /var/www/registry
 
+# Registry served under a subpath
+# Generates {"providers.v1": "/tf-providers/v1/providers/"} in .well-known/terraform.json
+tofu-provider init --base-path /tf-providers
+
 # Directly on a remote host
 tofu-provider init --registry-dir deploy@registry.example.com:/var/www/registry --ssh-key ~/.ssh/id_ed25519
 ```
+
+Available options for `init`:
+
+| Flag | Default | Description |
+|---|---|---|
+| `--registry-dir` | `./registry` | Local path or `user@host:/path` |
+| `--base-path` | — | URL prefix the registry is served under (e.g. `/tf-providers`) |
+| `--ssh-key` | — | SSH private key for remote registry |
+| `--ssh-port` | `22` | SSH port for remote registry |
+
+`--base-path` is saved in `.registry.json` and automatically applied by subsequent `add` commands — you don't need to repeat it.
 
 ### Add a provider binary
 

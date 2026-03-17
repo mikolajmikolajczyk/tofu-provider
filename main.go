@@ -46,8 +46,13 @@ func printHelp() {
 	fmt.Printf(`tofu-provider v%s — static Terraform/OpenTofu provider registry
 
 USAGE
-  tofu-provider init [--registry-dir <dir>] [--ssh-key <path>] [--ssh-port <port>]
+  tofu-provider init [--registry-dir <dir>] [--base-path <path>] [--ssh-key <path>] [--ssh-port <port>]
       Create the registry directory structure and initial config.
+
+      Options:
+        --base-path <path>    URL prefix the registry is served under (default: "")
+                              e.g. --base-path /tf-providers generates {"providers.v1": "/tf-providers/v1/providers/"}
+                              Saved in .registry.json and reused by subsequent commands.
 
   tofu-provider add <name> <version> <path_to_file> [<path_to_file> ...] [options]
       Add one or more provider binaries to the registry.

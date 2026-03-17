@@ -68,6 +68,12 @@ func addToRegistry(registryDir, name, version, filePath, namespace, targetOS, ta
 		return err
 	}
 
+	// Load config early to get base_path for the well-known file.
+	cfg, err := loadConfig(registryDir)
+	if err != nil {
+		return err
+	}
+
 	// Ensure .well-known exists
 	wellKnown := filepath.Join(registryDir, ".well-known")
 	tfJSON := filepath.Join(wellKnown, "terraform.json")
@@ -75,7 +81,7 @@ func addToRegistry(registryDir, name, version, filePath, namespace, targetOS, ta
 		if err := os.MkdirAll(wellKnown, 0755); err != nil {
 			return err
 		}
-		if err := writeJSON(tfJSON, map[string]string{"providers.v1": "/v1/providers/"}); err != nil {
+		if err := writeJSON(tfJSON, map[string]string{"providers.v1": providersV1Path(cfg.BasePath)}); err != nil {
 			return err
 		}
 	}
@@ -166,11 +172,7 @@ func addToRegistry(registryDir, name, version, filePath, namespace, targetOS, ta
 		return err
 	}
 
-	// Update .registry.json
-	cfg, err := loadConfig(registryDir)
-	if err != nil {
-		return err
-	}
+	// Update .registry.json (cfg already loaded at top of function)
 	key := fmt.Sprintf("%s/%s", namespace, name)
 	if cfg.Providers[key] == nil {
 		cfg.Providers[key] = &ProviderEntry{

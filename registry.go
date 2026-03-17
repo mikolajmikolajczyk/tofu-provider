@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 const registryConfigFile = ".registry.json"
@@ -11,7 +12,18 @@ const registryConfigFile = ".registry.json"
 // ── stored config (.registry.json) ──────────────────────────────────────────
 
 type RegistryConfig struct {
+	BasePath  string                    `json:"base_path,omitempty"`
 	Providers map[string]*ProviderEntry `json:"providers"`
+}
+
+// providersV1Path returns the providers.v1 URL path for the well-known file,
+// e.g. "" → "/v1/providers/", "/tf-providers" → "/tf-providers/v1/providers/".
+func providersV1Path(basePath string) string {
+	bp := strings.TrimRight(basePath, "/")
+	if bp != "" && !strings.HasPrefix(bp, "/") {
+		bp = "/" + bp
+	}
+	return bp + "/v1/providers/"
 }
 
 type ProviderEntry struct {
