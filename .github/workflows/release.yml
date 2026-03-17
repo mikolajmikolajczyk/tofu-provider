@@ -41,7 +41,7 @@ jobs:
           EXT=""
           [ "$GOOS" = "windows" ] && EXT=".exe"
           BINARY="tofu-provider_${GOOS}_${GOARCH}${EXT}"
-          go build -ldflags="-s -w -X main.version=${VERSION}" -o "$BINARY" .
+          CGO_ENABLED=0 go build -ldflags="-s -w -X main.version=${VERSION}" -o "$BINARY" .
           sha256sum "$BINARY" > "${BINARY}.sha256"
           echo "BINARY=$BINARY" >> $GITHUB_ENV
 
