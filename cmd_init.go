@@ -10,6 +10,7 @@ import (
 func cmdInit(args []string) error {
 	fs := flag.NewFlagSet("init", flag.ContinueOnError)
 	registryDir := fs.String("registry-dir", "./registry", "Registry root directory (or user@host:/path)")
+	hostname := fs.String("hostname", "", "Hostname the registry is served from (e.g. registry.example.com)")
 	basePath := fs.String("base-path", "", "URL prefix the registry is served under (e.g. /tf-providers)")
 	sshKey := fs.String("ssh-key", "", "SSH private key for remote registry")
 	sshPort := fs.Int("ssh-port", 22, "SSH port for remote registry")
@@ -19,20 +20,21 @@ func cmdInit(args []string) error {
 
 	opts := sshOpts{key: *sshKey, port: *sshPort}
 	return withRemote(*registryDir, opts, func(dir string) error {
-		return initRegistry(dir, *basePath)
+		return initRegistry(dir, *hostname, *basePath)
 	})
 }
 
-func initRegistry(registryDir, basePath string) error {
+func initRegistry(registryDir, hostname, basePath string) error {
 	if err := os.MkdirAll(registryDir, 0755); err != nil {
 		return err
 	}
 
-	// Load existing config so we don't overwrite providers, then update base_path.
+	// Load existing config so we don't overwrite providers, then update settings.
 	cfg, err := loadConfig(registryDir)
 	if err != nil {
 		return err
 	}
+	cfg.Hostname = hostname
 	cfg.BasePath = basePath
 	if err := saveConfig(registryDir, cfg); err != nil {
 		return err
@@ -78,6 +80,9 @@ func initRegistry(registryDir, basePath string) error {
 
 	absWellKnown, _ := filepath.Abs(wellKnown)
 	logOK(fmt.Sprintf("Registry initialized at: %s", absDir))
+	if hostname != "" {
+		logInfo(fmt.Sprintf("Hostname:               %s", hostname))
+	}
 	logInfo(fmt.Sprintf("providers.v1 path:      %s", providersPath))
 	logInfo(fmt.Sprintf("Well-known discovery:   %s/terraform.json", absWellKnown))
 	logInfo(fmt.Sprintf("Nginx sample config:    %s/nginx.conf.example", absDir))

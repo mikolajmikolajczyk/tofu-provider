@@ -40,9 +40,8 @@ registry/
 tofu-provider init
 tofu-provider init --registry-dir /var/www/registry
 
-# Registry served under a subpath
-# Generates {"providers.v1": "/tf-providers/v1/providers/"} in .well-known/terraform.json
-tofu-provider init --base-path /tf-providers
+# Registry served under a subpath with absolute download URLs
+tofu-provider init --hostname registry.example.com --base-path /tf-providers
 
 # Directly on a remote host
 tofu-provider init --registry-dir deploy@registry.example.com:/var/www/registry --ssh-key ~/.ssh/id_ed25519
@@ -53,11 +52,14 @@ Available options for `init`:
 | Flag | Default | Description |
 |---|---|---|
 | `--registry-dir` | `./registry` | Local path or `user@host:/path` |
+| `--hostname` | — | Hostname the registry is served from (e.g. `registry.example.com`) |
 | `--base-path` | — | URL prefix the registry is served under (e.g. `/tf-providers`) |
 | `--ssh-key` | — | SSH private key for remote registry |
 | `--ssh-port` | `22` | SSH port for remote registry |
 
-`--base-path` is saved in `.registry.json` and automatically applied by subsequent `add` commands — you don't need to repeat it.
+`--hostname` and `--base-path` are saved in `.registry.json` and automatically applied by subsequent `add` commands — you don't need to repeat them.
+
+When `--hostname` is set, `download_url` and `shasum_url` in each download `index.json` are generated as absolute HTTPS URLs, which OpenTofu requires. Without it they fall back to bare filenames.
 
 ### Add a provider binary
 

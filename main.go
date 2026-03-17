@@ -50,6 +50,9 @@ USAGE
       Create the registry directory structure and initial config.
 
       Options:
+        --hostname <host>     Hostname the registry is served from (e.g. registry.example.com)
+                              When set, download_url and shasum_url in download index.json are absolute HTTPS URLs.
+                              Saved in .registry.json and reused by subsequent commands.
         --base-path <path>    URL prefix the registry is served under (default: "")
                               e.g. --base-path /tf-providers generates {"providers.v1": "/tf-providers/v1/providers/"}
                               Saved in .registry.json and reused by subsequent commands.

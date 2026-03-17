@@ -112,14 +112,21 @@ func addToRegistry(registryDir, name, version, filePath, namespace, targetOS, ta
 		keyID = gpgKeyID
 	}
 
+	downloadURL := zipName
+	shasumURL := zipName + ".sha256"
+	if absURL := downloadFileURL(cfg.Hostname, cfg.BasePath, namespace, name, version, platformKey, zipName); absURL != "" {
+		downloadURL = absURL
+		shasumURL = absURL + ".sha256"
+	}
+
 	downloadDoc := DownloadDoc{
 		Protocols:   protocolList,
 		OS:          targetOS,
 		Arch:        targetArch,
 		Filename:    zipName,
-		DownloadURL: zipName,
+		DownloadURL: downloadURL,
 		Shasum:      shasum,
-		ShasumURL:   zipName + ".sha256",
+		ShasumURL:   shasumURL,
 		SigningKeys:  SigningKeys{GPGPublicKeys: []GPGKey{{KeyID: keyID, ASCIIArmor: ""}}},
 	}
 	if err := os.WriteFile(zipPath+".sha256", []byte(fmt.Sprintf("%s  %s\n", shasum, zipName)), 0644); err != nil {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,6 +13,7 @@ const registryConfigFile = ".registry.json"
 // ── stored config (.registry.json) ──────────────────────────────────────────
 
 type RegistryConfig struct {
+	Hostname  string                    `json:"hostname,omitempty"`
 	BasePath  string                    `json:"base_path,omitempty"`
 	Providers map[string]*ProviderEntry `json:"providers"`
 }
@@ -24,6 +26,23 @@ func providersV1Path(basePath string) string {
 		bp = "/" + bp
 	}
 	return bp + "/v1/providers/"
+}
+
+// downloadFileURL returns an absolute URL for a file inside the download directory.
+// Returns an empty string when hostname is not set (caller falls back to bare filename).
+// e.g. hostname="registry.example.com", basePath="/tf-providers",
+//
+//	namespace="myco", name="myprovider", version="1.0.0",
+//	platformKey="linux_amd64", filename="terraform-provider-myprovider_1.0.0_linux_amd64.zip"
+//
+// → "https://registry.example.com/tf-providers/v1/providers/myco/myprovider/1.0.0/download/linux_amd64/terraform-provider-myprovider_1.0.0_linux_amd64.zip"
+func downloadFileURL(hostname, basePath, namespace, name, version, platformKey, filename string) string {
+	if hostname == "" {
+		return ""
+	}
+	base := strings.TrimRight(providersV1Path(basePath), "/")
+	return fmt.Sprintf("https://%s%s/%s/%s/%s/download/%s/%s",
+		hostname, base, namespace, name, version, platformKey, filename)
 }
 
 type ProviderEntry struct {
